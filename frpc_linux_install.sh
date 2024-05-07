@@ -94,31 +94,30 @@ mv ${FILE_NAME}/${FRP_NAME} ${FRP_PATH}
 # configure frpc.toml
 RADOM_NAME=$(cat /dev/urandom | head -n 10 | md5sum | head -c 8)
 cat >${FRP_PATH}/${FRP_NAME}.toml<<EOF
-serverAddr = "frp.freefrp.net"
-serverPort = 7000
-auth.method = "token"
-auth.token = "freefrp.net"
+serverAddr = "uuxia.cn"
+serverPort = 6000
+auth.token = "xiaxiaoli"
 
 [[proxies]]
-name = "web1_${RADOM_NAME}"
-type = "http"
-localIP = "192.168.1.2"
-localPort = 5000
-customDomains = ["nas.yourdomain.com"]
-
-[[proxies]]
-name = "web2_${RADOM_NAME}"
+name = "lonbon_${RADOM_NAME}"
 type = "https"
 localIP = "192.168.1.2"
 localPort = 5001
 customDomains = ["nas.yourdomain.com"]
 
 [[proxies]]
-name = "tcp1_${RADOM_NAME}"
+name = "chengguan-lonbon_${RADOM_NAME}"
 type = "tcp"
-localIP = "192.168.1.3"
+localIP = "0.0.0.0"
 localPort = 22
-remotePort = 22222
+remotePort = 6304
+
+[[proxies]]
+name = "chengguan-lonbon_web_${RADOM_NAME}"
+type = "tcp"
+localIP = "0.0.0.0"
+localPort = 8080
+remotePort = 6305
 
 EOF
 
