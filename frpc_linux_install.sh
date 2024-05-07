@@ -96,7 +96,7 @@ RADOM_NAME=$(cat /dev/urandom | head -n 10 | md5sum | head -c 8)
 cat >${FRP_PATH}/${FRP_NAME}.toml<<EOF
 serverAddr = "uuxia.cn"
 serverPort = 6000
-auth.token = "xiaxiaoli"
+auth.token = "xiaxiaoli1"
 
 [[proxies]]
 name = "lonbon_${RADOM_NAME}"
