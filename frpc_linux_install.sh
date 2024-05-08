@@ -173,43 +173,6 @@ EOF
 
 }
 
-function test() {
-  echo -e "${Green}请输入Frps服务器地址:${Font}"
-  read server_host
-  echo -e "${Green}请输入Frps服务器端口:${Font}"
-  read server_port
-  echo -e "${Green}请输入Frps的Token:${Font}"
-  read server_token
-  echo -e "${Green}请输入tcp服务名称:${Font}"
-  read tcp_type_name
-  echo -e "${Green}请输入tcp本地端口:${Font}"
-  read tcp_local_port
-  echo -e "${Green}请输入tcp代理端口:${Font}"
-  read tcp_remote_port
-  RADOM_NAME=m2
-  cat >/Users/uuxia/Downloads/frpc/frpc_test.toml <<EOF
-serverAddr = "$server_host"
-serverPort = $server_port
-auth.token = "$server_token"
-
-#[[proxies]]
-#name = "lonbon_${RADOM_NAME}"
-#type = "https"
-#localIP = "192.168.1.2"
-#localPort = 5001
-#customDomains = ["nas.yourdomain.com"]
-
-[[proxies]]
-name = "${tcp_type_name}_${RADOM_NAME}"
-type = "tcp"
-localIP = "0.0.0.0"
-localPort = $tcp_local_port
-remotePort = $tcp_remote_port
-
-EOF
-
-}
-
 function main() {
   check
   download
