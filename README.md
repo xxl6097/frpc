@@ -34,8 +34,14 @@
 
 安装
 ```shell
+curl -sSLk https://raw.githubusercontent.com/xxl6097/frpc/master/frpc_linux_install.sh -o install.sh && sh install.sh
+```
+
+```shell
 wget https://raw.githubusercontent.com/xxl6097/frpc/master/frpc_linux_install.sh && chmod +x frpc_linux_install.sh && ./frpc_linux_install.sh
-# 以下为国内镜像
+```
+
+```shell
 wget https://github.ioiox.com/xxl6097/frpc/raw/branch/master/frpc_linux_install.sh && chmod +x frpc_linux_install.sh && ./frpc_linux_install.sh
 ```
 
