@@ -41,6 +41,11 @@ function uninstall() {
     echo "rm -rf /lib/systemd/system/${FRP_NAME}.service"
     rm -rf /lib/systemd/system/${FRP_NAME}.service
   fi
+
+  if [ -f "/tmp/logs/frp/${FRP_NAME}.log" ]; then
+    echo "rm -rf /tmp/logs/frp/${FRP_NAME}.log"
+    rm -rf /tmp/logs/frp/${FRP_NAME}.log
+  fi
 }
 
 function checkenv() {
@@ -128,6 +133,7 @@ function download() {
   echo -e "${Red}vi /usr/local/frp/${FRP_NAME}.toml${Font}"
   echo -e "${Green}修改完毕后执行以下命令重启服务:${Font}"
   echo -e "${Red}sudo systemctl restart ${FRP_NAME}${Font}"
+  echo -e "${Red}sudo systemctl status ${FRP_NAME}${Font}"
   echo -e "${Green}====================================================================${Font}"
 
   sudo systemctl status frpc
@@ -191,11 +197,11 @@ webServer.addr = "0.0.0.0"
 webServer.port = $admin_port
 webServer.user = "$admin_user"
 webServer.password = "$admin_pwd"
-log.to = "/tmp/logs/frp/frps.log"
+log.to = "/tmp/logs/frp/${FRP_NAME}.log"
 log.maxDays = 15
 
 [[proxies]]
-name = "${tcp_type_name}.${RADOM_NAME}"
+name = "${tcp_type_name}-${RADOM_NAME}"
 type = "tcp"
 localIP = "0.0.0.0"
 localPort = $tcp_local_port
