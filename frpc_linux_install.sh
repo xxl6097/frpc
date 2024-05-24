@@ -14,15 +14,33 @@ Font="\033[0m"
 # variable
 WORK_PATH=$(dirname $(readlink -f $0))
 FRP_NAME=frpc
-FRP_VERSION=0.57.0
+FRP_VERSION=0.58.0
 FRP_PATH=/usr/local/frp
 PROXY_URL="https://mirror.ghproxy.com/"
 
 function killfrpc() {
   while ! test -z "$(ps -A | grep -w ${FRP_NAME})"; do
     FRPCPID=$(ps -A | grep -w ${FRP_NAME} | awk 'NR==1 {print $1}')
+    echo "kill -9 $FRPCPID"
     kill -9 $FRPCPID
   done
+}
+
+function uninstall() {
+  if [ -f "/usr/local/frp/${FRP_NAME}" ]; then
+    echo "rm -rf /usr/local/frp/${FRP_NAME}"
+    rm -rf /usr/local/frp/${FRP_NAME}
+  fi
+
+  if [ -f "/usr/local/frp/${FRP_NAME}.toml" ]; then
+    echo "rm -rf /usr/local/frp/${FRP_NAME}.toml"
+    rm -rf /usr/local/frp/${FRP_NAME}.toml
+  fi
+
+  if [ -f "/lib/systemd/system/${FRP_NAME}.service" ]; then
+    echo "rm -rf /lib/systemd/system/${FRP_NAME}.service"
+    rm -rf /lib/systemd/system/${FRP_NAME}.service
+  fi
 }
 
 function checkenv() {
@@ -36,6 +54,7 @@ function checkenv() {
     fi
   fi
 
+  # check wget and curl
   if type yum >/dev/null 2>&1; then
     if ! type wget >/dev/null 2>&1; then
       yum install wget -y
@@ -45,13 +64,13 @@ function checkenv() {
     fi
   fi
 
-}
-
-function download() {
   # check network
   GOOGLE_HTTP_CODE=$(curl -o /dev/null --connect-timeout 5 --max-time 8 -s --head -w "%{http_code}" "https://www.google.com")
   PROXY_HTTP_CODE=$(curl -o /dev/null --connect-timeout 5 --max-time 8 -s --head -w "%{http_code}" "${PROXY_URL}")
 
+}
+
+function download() {
   # check arch
   if [ $(uname -m) = "x86_64" ]; then
     PLATFORM=amd64
@@ -67,6 +86,7 @@ function download() {
 
   FILE_NAME=frp_${FRP_VERSION}_linux_${PLATFORM}
 
+  echo -e "${Green}start download https://github.com/fatedier/frp/releases/download/v${FRP_VERSION}/${FILE_NAME}.tar.gz${Font}"
   # download
   if [ $GOOGLE_HTTP_CODE == "200" ]; then
     wget -P ${WORK_PATH} https://github.com/fatedier/frp/releases/download/v${FRP_VERSION}/${FILE_NAME}.tar.gz -O ${FILE_NAME}.tar.gz
@@ -78,19 +98,29 @@ function download() {
       wget -P ${WORK_PATH} https://github.com/fatedier/frp/releases/download/v${FRP_VERSION}/${FILE_NAME}.tar.gz -O ${FILE_NAME}.tar.gz
     fi
   fi
+
+  # kill frpc
+  killfrpc
+
+  uninstall
+
   tar -zxvf ${FILE_NAME}.tar.gz
 
+  echo "mkdir -p ${FRP_PATH}"
   mkdir -p ${FRP_PATH}
+  echo "mv ${FILE_NAME}/${FRP_NAME} ${FRP_PATH}"
   mv ${FILE_NAME}/${FRP_NAME} ${FRP_PATH}
-
   configure
-
   # finish install
+  echo "systemctl daemon-reload"
   systemctl daemon-reload
+  echo "sudo systemctl start ${FRP_NAME}"
   sudo systemctl start ${FRP_NAME}
+  echo "sudo systemctl enable ${FRP_NAME}"
   sudo systemctl enable ${FRP_NAME}
 
   # clean
+  echo "rm -rf ${WORK_PATH}/${FILE_NAME}.tar.gz ${WORK_PATH}/${FILE_NAME} ${FRP_NAME}_linux_install.sh"
   rm -rf ${WORK_PATH}/${FILE_NAME}.tar.gz ${WORK_PATH}/${FILE_NAME} ${FRP_NAME}_linux_install.sh
 
   echo -e "${Green}====================================================================${Font}"
@@ -99,6 +129,10 @@ function download() {
   echo -e "${Green}修改完毕后执行以下命令重启服务:${Font}"
   echo -e "${Red}sudo systemctl restart ${FRP_NAME}${Font}"
   echo -e "${Green}====================================================================${Font}"
+
+  sudo systemctl status frpc
+
+  tail -f /tmp/logs/frp/frps.log
 
 }
 
@@ -114,11 +148,14 @@ function check() {
     echo -e "${Red}rm -rf /usr/local/frp/${FRP_NAME}.toml${Font}"
     echo -e "${Red}rm -rf /lib/systemd/system/${FRP_NAME}.service${Font}"
     echo -e "${Green}=========================================================================${Font}"
-    exit 0
+    echo -e "${RedBG}是否卸载(y/n):${Font}"
+    read yes
+    if [ "$yes" == "y" ]; then
+      uninstall
+    else
+      exit 0
+    fi
   fi
-
-  # kill frpc
-  killfrpc
   # check env
   checkenv
 }
@@ -131,6 +168,12 @@ function configure() {
   read server_port
   echo -e "${Green}请输入Frps的Token:${Font}"
   read server_token
+  echo -e "${Green}请输入admin_port:${Font}"
+  read admin_port
+  echo -e "${Green}请输入admin_user:${Font}"
+  read admin_user
+  echo -e "${Green}请输入admin_pwd:${Font}"
+  read admin_pwd
   echo -e "${Green}请输入tcp服务名称:${Font}"
   read tcp_type_name
   echo -e "${Green}请输入tcp本地端口:${Font}"
@@ -144,15 +187,20 @@ serverAddr = "$server_host"
 serverPort = $server_port
 auth.token = "$server_token"
 
+webServer.addr = "0.0.0.0"
+webServer.port = $admin_port
+webServer.user = "$admin_user"
+webServer.password = "$admin_pwd"
+log.to = "/tmp/logs/frp/frps.log"
+log.maxDays = 15
+
 [[proxies]]
-name = "${tcp_type_name}_${RADOM_NAME}"
+name = "${tcp_type_name}.${RADOM_NAME}"
 type = "tcp"
 localIP = "0.0.0.0"
 localPort = $tcp_local_port
 remotePort = $tcp_remote_port
 EOF
-
-
 
   # configure systemd
   cat >/lib/systemd/system/${FRP_NAME}.service <<EOF
